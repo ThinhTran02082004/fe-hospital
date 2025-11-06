@@ -2,14 +2,12 @@ import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
-  FaCalendarAlt, FaUserInjured, FaClipboardList,
-  FaUserMd, FaClock, FaSignOutAlt, FaChartLine,
-  FaTachometerAlt, FaCommentMedical,
-  FaBars, FaTimes, FaHistory, FaComments, FaVideo,
+  FaTachometerAlt, FaPills, FaBoxes, FaUser,
+  FaSignOutAlt, FaBars, FaTimes, FaCalendarAlt,
   FaMoneyBillWave
 } from 'react-icons/fa';
 
-const DoctorLayout = ({ children }) => {
+const PharmacistLayout = ({ children }) => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -18,18 +16,18 @@ const DoctorLayout = ({ children }) => {
     setSidebarOpen(!sidebarOpen);
   };
 
-  if (!user || (user.roleType !== 'doctor' && user.role !== 'doctor')) {
+  if (!user || (user.roleType !== 'pharmacist' && user.role !== 'pharmacist')) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-center px-4 py-10 bg-gray-50">
         <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-lg transform transition-all">
-          <div className="text-red-500 text-5xl mb-6">
-            <FaUserMd className="mx-auto animate-pulse" />
+          <div className="text-blue-500 text-5xl mb-6">
+            <FaPills className="mx-auto animate-pulse" />
           </div>
           <h1 className="text-2xl font-bold text-gray-800 mb-3">Không có quyền truy cập</h1>
-          <p className="text-gray-600 mb-8">Bạn cần đăng nhập với tài khoản bác sĩ để truy cập trang này.</p>
+          <p className="text-gray-600 mb-8">Bạn cần đăng nhập với tài khoản dược sĩ để truy cập trang này.</p>
           <Link 
             to="/auth" 
-            className="inline-block w-full px-6 py-3.5 bg-gradient-to-r from-primary to-blue-600 text-white font-medium rounded-lg shadow-md hover:from-blue-600 hover:to-primary transition-all duration-300"
+            className="inline-block w-full px-6 py-3.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-lg shadow-md hover:from-blue-600 hover:to-blue-700 transition-all duration-300"
           >
             Đăng nhập
           </Link>
@@ -39,17 +37,12 @@ const DoctorLayout = ({ children }) => {
   }
 
   const navItems = [
-    { path: '/doctor/dashboard', label: 'Tổng quan', icon: <FaTachometerAlt /> },
-    { path: '/doctor/appointments', label: 'Lịch hẹn', icon: <FaCalendarAlt /> },
-    { path: '/doctor/patients', label: 'Bệnh nhân', icon: <FaUserInjured /> },
-    { path: '/doctor/chat', label: 'Tin nhắn', icon: <FaComments /> },
-    { path: '/doctor/meetings', label: 'Cuộc họp nội bộ', icon: <FaVideo /> },
-    { path: '/doctor/schedule', label: 'Quản lý lịch trực', icon: <FaClock /> },
-    { path: '/doctor/medical-records', label: 'Hồ sơ y tế', icon: <FaClipboardList /> },
-    { path: '/doctor/payment-history', label: 'Lịch sử thanh toán', icon: <FaMoneyBillWave /> },
-    { path: '/doctor/video-call-history', label: 'Lịch sử Video Call', icon: <FaHistory /> },
-    { path: '/doctor/reviews', label: 'Đánh giá', icon: <FaCommentMedical /> },
-    { path: '/doctor/profile', label: 'Hồ sơ cá nhân', icon: <FaUserMd /> },
+    { path: '/pharmacist/dashboard', label: 'Tổng quan', icon: <FaTachometerAlt /> },
+    { path: '/pharmacist/appointments', label: 'Lịch hẹn', icon: <FaCalendarAlt /> },
+    { path: '/pharmacist/prescriptions', label: 'Đơn thuốc', icon: <FaPills /> },
+    { path: '/pharmacist/payment-history', label: 'Lịch sử thanh toán', icon: <FaMoneyBillWave /> },
+    { path: '/pharmacist/medication-inventory', label: 'Kho thuốc', icon: <FaBoxes /> },
+    { path: '/pharmacist/profile', label: 'Hồ sơ cá nhân', icon: <FaUser /> },
   ];
 
   return (
@@ -63,14 +56,14 @@ const DoctorLayout = ({ children }) => {
       )}
 
       {/* Sidebar */}
-      <aside className={`bg-gradient-to-br from-primary via-blue-600 to-primary-dark text-white flex flex-col fixed lg:sticky top-0 z-40 h-screen w-[280px] shadow-xl transition-all duration-300 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 text-white flex flex-col fixed lg:sticky top-0 z-40 h-screen w-[280px] shadow-xl transition-all duration-300 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         {/* Logo/Brand */}
         <div className="px-6 py-8 border-b border-white/20">
-          <Link to="/doctor/dashboard" className="flex items-center space-x-3 transition-transform hover:scale-105">
+          <Link to="/pharmacist/dashboard" className="flex items-center space-x-3 transition-transform hover:scale-105">
             <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
-              <FaUserMd className="text-2xl text-white" />
+              <FaPills className="text-2xl text-white" />
             </div>
-            <h2 className="text-xl font-bold tracking-wide">Doctor Portal</h2>
+            <h2 className="text-xl font-bold tracking-wide">Pharmacy Portal</h2>
           </Link>
         </div>
 
@@ -109,17 +102,17 @@ const DoctorLayout = ({ children }) => {
           <div className="flex items-center space-x-3 mb-4 p-3 bg-white/10 rounded-xl backdrop-blur-sm">
             <div className="relative">
               <img 
-                src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || 'Doctor')}&background=1AC0FF&color=fff`} 
+                src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || 'Pharmacist')}&background=3B82F6&color=fff`} 
                 alt={user.fullName}
                 className="w-10 h-10 rounded-full border-2 border-white/30 object-cover shadow-md"
                 onError={(e) => {
-                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || 'Doctor')}&background=1AC0FF&color=fff`;
+                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || 'Pharmacist')}&background=3B82F6&color=fff`;
                 }}
               />
-              <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-primary rounded-full"></span>
+              <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-blue-600 rounded-full"></span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">{user.fullName || 'Bác sĩ'}</p>
+              <p className="text-sm font-medium text-white truncate">{user.fullName || 'Dược sĩ'}</p>
               <p className="text-xs text-white/70 truncate">{user.email}</p>
             </div>
           </div>
@@ -154,11 +147,11 @@ const DoctorLayout = ({ children }) => {
               <div className="hidden md:block">
                 <div className="flex items-center space-x-3 py-1 px-3 bg-gray-100 rounded-full">
                   <img 
-                    src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || 'Doctor')}&background=1AC0FF&color=fff`} 
+                    src={user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || 'Pharmacist')}&background=3B82F6&color=fff`} 
                     alt={user.fullName}
-                    className="w-8 h-8 rounded-full border border-primary/20"
+                    className="w-8 h-8 rounded-full border border-blue-500/20"
                   />
-                  <span className="text-sm font-medium text-gray-700">{user.fullName || 'Bác sĩ'}</span>
+                  <span className="text-sm font-medium text-gray-700">{user.fullName || 'Dược sĩ'}</span>
                 </div>
               </div>
             </div>
@@ -185,4 +178,5 @@ const DoctorLayout = ({ children }) => {
   );
 };
 
-export default DoctorLayout; 
+export default PharmacistLayout;
+

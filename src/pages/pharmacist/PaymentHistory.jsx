@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import api from '../utils/api';
+import { useAuth } from '../../context/AuthContext';
+import api from '../../utils/api';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { FaPills, FaInfoCircle } from 'react-icons/fa';
 
-const MedicalHistory = () => {
-  const [medicalRecords, setMedicalRecords] = useState([]);
+const PharmacistPaymentHistory = () => {
+  const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
@@ -17,130 +17,93 @@ const MedicalHistory = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    fetchMedicalHistory();
-  }, [user, currentPage, pageSize, activeTab]);
+    fetchPayments();
+  }, [user, currentPage, pageSize]);
 
-  const fetchMedicalHistory = async () => {
+  const fetchPayments = async () => {
     if (!user) return;
     
     try {
       setLoading(true);
-      const response = await api.get(`/prescriptions/user/history?page=${currentPage}&limit=${pageSize}${activeTab !== 'all' ? `&status=${activeTab}` : ''}`);
+      // Fetch payments for medication bills (pharmacist's focus)
+      const response = await api.get(`/billing/payment-history?page=${currentPage}&limit=${pageSize}&billType=medication`);
       
-      if (response.data && response.data.records) {
-        setMedicalRecords(response.data.records);
+      if (response.data && response.data.data) {
+        setPayments(response.data.data);
         setTotalItems(response.data.pagination.total);
         setTotalPages(response.data.pagination.totalPages);
       } else {
-        setMedicalRecords([]);
+        setPayments([]);
         setTotalItems(0);
         setTotalPages(1);
       }
       setLoading(false);
     } catch (err) {
-      console.error("Failed to fetch medical history:", err);
-      const errorMsg = err.response?.data?.message || "Không thể tải lịch sử khám bệnh. Vui lòng thử lại sau.";
+      console.error("Failed to fetch payment history:", err);
+      const errorMsg = err.response?.data?.message || "Không thể tải lịch sử thanh toán. Vui lòng thử lại sau.";
       setError(errorMsg);
       toast.error(errorMsg);
       setLoading(false);
     }
   };
 
-  // Handle page change
   const handlePageChange = (page) => {
     setCurrentPage(page);
   };
 
-  // Handle page size change
   const handlePageSizeChange = (e) => {
     setPageSize(parseInt(e.target.value));
-    setCurrentPage(1); // Reset to first page when changing page size
+    setCurrentPage(1);
   };
-
-  // Filter is now handled by backend, but we can add client-side filtering if needed
-  const filteredRecords = medicalRecords;
 
   const getStatusBadge = (status) => {
     if (!status) return 'bg-gray-100 text-gray-800';
     
     switch (status.toLowerCase()) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'approved':
-        return 'bg-blue-100 text-blue-800';
-      case 'dispensed':
-        return 'bg-green-100 text-green-800';
       case 'completed':
+      case 'successful':
         return 'bg-green-100 text-green-800';
-      case 'cancelled':
+      case 'pending':
+      case 'processing':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'failed':
         return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const formatStatus = (status) => {
-    if (!status) return 'Không xác định';
-    
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return 'Chờ xử lý';
-      case 'approved':
-        return 'Đã kê đơn';
-      case 'verified':
-        return 'Đã phê duyệt';
-      case 'dispensed':
-        return 'Đã cấp thuốc';
-      case 'completed':
-        return 'Hoàn thành';
-      case 'cancelled':
-        return 'Đã hủy';
-      default:
-        return status;
-    }
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', { 
+      style: 'currency', 
+      currency: 'VND' 
+    }).format(amount);
   };
 
-  // Generate pagination numbers
   const generatePaginationNumbers = () => {
     const pages = [];
     const maxPagesToShow = 5;
     
     if (totalPages <= maxPagesToShow) {
-      // Show all pages
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
       }
     } else {
-      // Always add first page
       pages.push(1);
-      
-      // Calculate start and end of the middle section
       let start = Math.max(2, currentPage - 1);
       let end = Math.min(totalPages - 1, currentPage + 1);
       
-      // Adjust if at edges
       if (currentPage <= 2) {
         end = 4;
       } else if (currentPage >= totalPages - 1) {
         start = totalPages - 3;
       }
       
-      // Add ellipsis after first page if needed
-      if (start > 2) {
-        pages.push('...');
-      }
-      
-      // Add middle pages
+      if (start > 2) pages.push('...');
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
-      
-      // Add ellipsis before last page if needed
-      if (end < totalPages - 1) {
-        pages.push('...');
-      }
-      
-      // Always add last page
+      if (end < totalPages - 1) pages.push('...');
       pages.push(totalPages);
     }
     
@@ -186,76 +149,22 @@ const MedicalHistory = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4">
         <div className="bg-white rounded-lg shadow-md overflow-hidden max-w-6xl mx-auto">
-          <div className="border-b border-gray-200 bg-gray-50 px-6 py-4">
-            <h1 className="text-2xl font-bold text-gray-800">Lịch sử đơn thuốc</h1>
-            <p className="text-sm text-gray-500 mt-1">Xem tất cả lịch sử đơn thuốc của bạn</p>
+          <div className="border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4">
+            <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+              <FaPills /> Lịch Sử Thanh Toán Thuốc
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">Xem các giao dịch thanh toán cho đơn thuốc</p>
           </div>
 
-          {/* Filter tabs */}
-          <div className="border-b border-gray-200">
-            <div className="px-6 flex space-x-4 overflow-x-auto">
-              <button
-                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                  activeTab === 'all'
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-                onClick={() => {
-                  setActiveTab('all');
-                  setCurrentPage(1);
-                }}
-              >
-                Tất cả
-              </button>
-              <button
-                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                  activeTab === 'approved'
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-                onClick={() => {
-                  setActiveTab('approved');
-                  setCurrentPage(1);
-                }}
-              >
-                Đã kê đơn
-              </button>
-              <button
-                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
-                  activeTab === 'dispensed'
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-                onClick={() => {
-                  setActiveTab('dispensed');
-                  setCurrentPage(1);
-                }}
-              >
-                Đã cấp thuốc
-              </button>
-            </div>
-          </div>
-
-          {filteredRecords.length === 0 ? (
+          {payments.length === 0 ? (
             <div className="p-8 text-center">
               <svg className="w-16 h-16 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
-              <h3 className="mt-4 text-lg font-medium text-gray-900">Không có lịch sử đơn thuốc</h3>
+              <h3 className="mt-4 text-lg font-medium text-gray-900">Không có lịch sử thanh toán</h3>
               <p className="mt-1 text-gray-500">
-                {activeTab === 'all' 
-                  ? 'Bạn chưa có lịch sử đơn thuốc nào.' 
-                  : `Không có đơn thuốc nào ở trạng thái "${
-                      activeTab === 'approved' ? 'Đã kê đơn' : 
-                      activeTab === 'dispensed' ? 'Đã cấp thuốc' : 'Chờ xử lý'
-                    }".`}
+                Chưa có giao dịch thanh toán nào cho đơn thuốc.
               </p>
-              <Link 
-                to="/appointment" 
-                className="mt-5 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark"
-              >
-                Đặt lịch khám mới
-              </Link>
             </div>
           ) : (
             <>
@@ -264,19 +173,19 @@ const MedicalHistory = () => {
                   <thead className="bg-gray-50">
                     <tr>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Ngày khám
+                        Mã thanh toán
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Bác sĩ
+                        Bệnh nhân
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Chuyên khoa
+                        Ngày thanh toán
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Chẩn đoán
+                        Số tiền
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Số đơn thuốc
+                        Phương thức
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Trạng thái
@@ -287,56 +196,50 @@ const MedicalHistory = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredRecords.map((record) => {
-                      // Get diagnosis from first prescription
-                      const firstPrescription = record.prescriptions && record.prescriptions[0];
-                      const diagnosis = firstPrescription?.diagnosis || 'Chưa có chẩn đoán';
-                      // Get overall status (if all dispensed then dispensed, if any approved then approved, else pending)
-                      const overallStatus = record.prescriptions?.every(p => p.status === 'dispensed') 
-                        ? 'dispensed'
-                        : record.prescriptions?.some(p => p.status === 'approved' || p.status === 'verified' || p.status === 'dispensed')
-                        ? 'approved'
-                        : 'pending';
-                      
+                    {payments.map((payment) => {
                       return (
-                        <tr key={record.appointmentId?._id || record.appointmentId} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {format(new Date(record.appointmentDate || record.createdAt), 'dd/MM/yyyy')}
+                        <tr key={payment._id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {payment.paymentNumber || payment.transactionId || payment._id.substring(0, 8)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center mr-2">
-                                {record.doctor?.charAt(0) || 'D'}
-                              </div>
-                              <div className="text-sm text-gray-900">{record.doctor || 'Chưa xác định'}</div>
+                            <div className="text-sm text-gray-900">
+                              {payment.patientId?.fullName || 'N/A'}
                             </div>
+                            {payment.patientId?.email && (
+                              <div className="text-xs text-gray-500">{payment.patientId.email}</div>
+                            )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {record.specialty || 'Chưa xác định'}
+                            {format(new Date(payment.createdAt), 'dd/MM/yyyy HH:mm')}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {formatCurrency(payment.amount)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <div className="max-w-xs truncate">
-                              {diagnosis}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {record.prescriptions?.length || 0} đơn
+                            {payment.paymentMethod === 'cash' ? 'Tiền mặt' : 
+                             payment.paymentMethod === 'momo' ? 'MoMo' :
+                             payment.paymentMethod === 'paypal' ? 'PayPal' :
+                             payment.paymentMethod}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(overallStatus)}`}>
-                              {formatStatus(overallStatus)}
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(payment.paymentStatus)}`}>
+                              {payment.paymentStatus === 'completed' ? 'Thành công' :
+                               payment.paymentStatus === 'pending' ? 'Đang xử lý' :
+                               payment.paymentStatus === 'failed' ? 'Thất bại' :
+                               payment.paymentStatus}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            {record.appointmentId ? (
+                            {payment.appointmentId ? (
                               <Link 
-                                to={`/appointments/${record.appointmentId}`} 
+                                to={`/pharmacist/appointments/${typeof payment.appointmentId === 'object' ? payment.appointmentId._id : payment.appointmentId}`} 
                                 className="text-primary hover:text-primary-dark"
                               >
-                                Xem chi tiết
+                                Xem lịch hẹn
                               </Link>
                             ) : (
-                              <span className="text-gray-400">Không có dữ liệu</span>
+                              <span className="text-gray-400">Không có chi tiết</span>
                             )}
                           </td>
                         </tr>
@@ -345,12 +248,12 @@ const MedicalHistory = () => {
                   </tbody>
                 </table>
               </div>
-
+              
               {/* Pagination controls */}
               <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center mb-4 sm:mb-0">
                   <span className="text-sm text-gray-700">
-                    Hiển thị <span className="font-medium">{filteredRecords.length}</span> / <span className="font-medium">{totalItems}</span> kết quả
+                    Hiển thị <span className="font-medium">{payments.length}</span> / <span className="font-medium">{totalItems}</span> kết quả
                   </span>
                   <div className="ml-4">
                     <label htmlFor="pageSize" className="mr-2 text-sm text-gray-600">Số dòng:</label>
@@ -393,7 +296,6 @@ const MedicalHistory = () => {
                     &lsaquo;
                   </button>
                   
-                  {/* Page numbers */}
                   {generatePaginationNumbers().map((page, index) => (
                     page === '...' ? (
                       <span key={`ellipsis-${index}`} className="px-3 py-1 text-gray-700">...</span>
@@ -438,10 +340,21 @@ const MedicalHistory = () => {
               </div>
             </>
           )}
+
+          {/* Info Note */}
+          <div className="bg-green-50 border-t border-green-200 px-6 py-4">
+            <div className="flex items-start gap-2">
+              <FaInfoCircle className="text-green-600 mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-gray-700">
+                <strong>Lưu ý:</strong> Đây là lịch sử thanh toán cho các đơn thuốc. Dược sĩ có thể xác nhận thanh toán tiền mặt trực tiếp tại trang chi tiết lịch hẹn.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-export default MedicalHistory; 
+export default PharmacistPaymentHistory;
+
